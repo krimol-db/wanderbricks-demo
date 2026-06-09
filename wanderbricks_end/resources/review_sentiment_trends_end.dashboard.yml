@@ -1,0 +1,424 @@
+resources:
+  dashboards:
+    customer_reviews_sentiment_over_time:
+      display_name: "Customer Reviews Sentiment Trends End"
+      warehouse_id: 2be3f8ffb2251d96
+      file_path: ../src/review_sentiment_trends_end.lvdash.json
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${var.schema}
+      serialized_dashboard: |
+        {
+          "datasets": [
+            {
+              "name": "sentiment_monthly",
+              "displayName": "Sentiment by Month",
+              "queryLines": [
+                "WITH base AS (\n",
+                "  SELECT\n",
+                "    DATE_FORMAT(review_date, 'yyyy-MM') AS month,\n",
+                "    sentiment_label,\n",
+                "    COUNT(*) AS review_count\n",
+                "  FROM\n",
+                "    sentiment_reviews\n",
+                "  GROUP BY\n",
+                "    1,\n",
+                "    2\n",
+                ")\n",
+                "SELECT\n",
+                "  month,\n",
+                "  sentiment_label,\n",
+                "  review_count,\n",
+                "  ROUND(review_count * 100.0 / SUM(review_count) OVER (PARTITION BY month), 1) AS pct\n",
+                "FROM\n",
+                "  base\n",
+                "WHERE\n",
+                "  month >= '2023-08'\n",
+                "ORDER BY\n",
+                "  1,\n",
+                "  2"
+              ]
+            },
+            {
+              "name": "sentiment_scorecard",
+              "displayName": "Sentiment Scorecard (Latest Month)",
+              "queryLines": [
+                "WITH base AS (\n",
+                "  SELECT\n",
+                "    DATE_FORMAT(review_date, 'yyyy-MM') AS month,\n",
+                "    sentiment_label,\n",
+                "    COUNT(*) AS review_count\n",
+                "  FROM\n",
+                "    sentiment_reviews\n",
+                "  GROUP BY\n",
+                "    1,\n",
+                "    2\n",
+                "),\n",
+                "monthly AS (\n",
+                "  SELECT\n",
+                "    month,\n",
+                "    sentiment_label,\n",
+                "    ROUND(review_count * 100.0 / SUM(review_count) OVER (PARTITION BY month), 1) AS pct\n",
+                "  FROM\n",
+                "    base\n",
+                "),\n",
+                "latest_month AS (\n",
+                "  SELECT\n",
+                "    MAX(month) AS max_month\n",
+                "  FROM\n",
+                "    monthly\n",
+                ")\n",
+                "SELECT\n",
+                "  MAX(\n",
+                "    CASE\n",
+                "      WHEN sentiment_label = 'Positive' THEN pct\n",
+                "    END\n",
+                "  ) AS positive_pct,\n",
+                "  MAX(\n",
+                "    CASE\n",
+                "      WHEN sentiment_label = 'Neutral' THEN pct\n",
+                "    END\n",
+                "  ) AS neutral_pct,\n",
+                "  MAX(\n",
+                "    CASE\n",
+                "      WHEN sentiment_label = 'Negative' THEN pct\n",
+                "    END\n",
+                "  ) AS negative_pct\n",
+                "FROM\n",
+                "  monthly CROSS JOIN latest_month\n",
+                "WHERE\n",
+                "  month = max_month"
+              ]
+            }
+          ],
+          "pages": [
+            {
+              "name": "6449d246",
+              "displayName": "Page 1",
+              "layout": [
+                {
+                  "widget": {
+                    "name": "counter_positive",
+                    "queries": [
+                      {
+                        "name": "main_query",
+                        "query": {
+                          "datasetName": "sentiment_scorecard",
+                          "fields": [
+                            {
+                              "name": "max(positive_pct)",
+                              "expression": "MAX(`positive_pct`)"
+                            }
+                          ],
+                          "disaggregated": false
+                        }
+                      }
+                    ],
+                    "spec": {
+                      "encodings": {
+                        "value": {
+                          "fieldName": "max(positive_pct)",
+                          "format": {
+                            "abbreviation": "none",
+                            "decimalPlaces": {
+                              "places": 1,
+                              "type": "exact"
+                            },
+                            "type": "number-plain"
+                          },
+                          "formatTemplate": "{{ @formatted }}%",
+                          "style": {
+                            "bold": true,
+                            "color": "#43A047"
+                          }
+                        }
+                      },
+                      "frame": {
+                        "showTitle": true,
+                        "title": "Positive Reviews (Latest Month)"
+                      },
+                      "version": 2,
+                      "widgetType": "counter"
+                    }
+                  },
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 4,
+                    "height": 3
+                  }
+                },
+                {
+                  "widget": {
+                    "name": "counter_neutral",
+                    "queries": [
+                      {
+                        "name": "main_query",
+                        "query": {
+                          "datasetName": "sentiment_scorecard",
+                          "fields": [
+                            {
+                              "name": "max(neutral_pct)",
+                              "expression": "MAX(`neutral_pct`)"
+                            }
+                          ],
+                          "disaggregated": false
+                        }
+                      }
+                    ],
+                    "spec": {
+                      "encodings": {
+                        "value": {
+                          "fieldName": "max(neutral_pct)",
+                          "format": {
+                            "abbreviation": "none",
+                            "decimalPlaces": {
+                              "places": 1,
+                              "type": "exact"
+                            },
+                            "type": "number-plain"
+                          },
+                          "formatTemplate": "{{ @formatted }}%",
+                          "style": {
+                            "bold": true,
+                            "color": "#9E9E9E"
+                          }
+                        }
+                      },
+                      "frame": {
+                        "showTitle": true,
+                        "title": "Neutral Reviews (Latest Month)"
+                      },
+                      "version": 2,
+                      "widgetType": "counter"
+                    }
+                  },
+                  "position": {
+                    "x": 4,
+                    "y": 0,
+                    "width": 4,
+                    "height": 3
+                  }
+                },
+                {
+                  "widget": {
+                    "name": "counter_negative",
+                    "queries": [
+                      {
+                        "name": "main_query",
+                        "query": {
+                          "datasetName": "sentiment_scorecard",
+                          "fields": [
+                            {
+                              "name": "max(negative_pct)",
+                              "expression": "MAX(`negative_pct`)"
+                            }
+                          ],
+                          "disaggregated": false
+                        }
+                      }
+                    ],
+                    "spec": {
+                      "encodings": {
+                        "value": {
+                          "fieldName": "max(negative_pct)",
+                          "format": {
+                            "abbreviation": "none",
+                            "decimalPlaces": {
+                              "places": 1,
+                              "type": "exact"
+                            },
+                            "type": "number-plain"
+                          },
+                          "formatTemplate": "{{ @formatted }}%",
+                          "style": {
+                            "bold": true,
+                            "color": "#E53935"
+                          }
+                        }
+                      },
+                      "frame": {
+                        "showTitle": true,
+                        "title": "Negative Reviews (Latest Month)"
+                      },
+                      "version": 2,
+                      "widgetType": "counter"
+                    }
+                  },
+                  "position": {
+                    "x": 8,
+                    "y": 0,
+                    "width": 4,
+                    "height": 3
+                  }
+                },
+                {
+                  "widget": {
+                    "name": "sentiment_bar_chart",
+                    "queries": [
+                      {
+                        "name": "main_query",
+                        "query": {
+                          "datasetName": "sentiment_monthly",
+                          "fields": [
+                            {
+                              "name": "sentiment_label",
+                              "expression": "`sentiment_label`"
+                            },
+                            {
+                              "name": "month",
+                              "expression": "`month`"
+                            },
+                            {
+                              "name": "sum(pct)",
+                              "expression": "SUM(`pct`)"
+                            }
+                          ],
+                          "disaggregated": false
+                        }
+                      }
+                    ],
+                    "spec": {
+                      "encodings": {
+                        "color": {
+                          "fieldName": "sentiment_label",
+                          "legend": {
+                            "title": "Sentiment"
+                          },
+                          "scale": {
+                            "type": "categorical"
+                          }
+                        },
+                        "x": {
+                          "axis": {
+                            "labelAngle": 45,
+                            "title": "Month"
+                          },
+                          "fieldName": "month",
+                          "scale": {
+                            "type": "categorical"
+                          }
+                        },
+                        "y": {
+                          "axis": {
+                            "title": "% of Reviews"
+                          },
+                          "fieldName": "sum(pct)",
+                          "scale": {
+                            "type": "quantitative"
+                          }
+                        }
+                      },
+                      "frame": {
+                        "showTitle": true,
+                        "title": "Sentiment % by Month"
+                      },
+                      "mark": {
+                        "colors": [
+                          "#E53935",
+                          "#9E9E9E",
+                          "#43A047"
+                        ],
+                        "layout": "percent-stack"
+                      },
+                      "version": 3,
+                      "widgetType": "bar"
+                    }
+                  },
+                  "position": {
+                    "x": 0,
+                    "y": 3,
+                    "width": 12,
+                    "height": 9
+                  }
+                },
+                {
+                  "widget": {
+                    "name": "sentiment_line_chart",
+                    "queries": [
+                      {
+                        "name": "main_query",
+                        "query": {
+                          "datasetName": "sentiment_monthly",
+                          "fields": [
+                            {
+                              "name": "sentiment_label",
+                              "expression": "`sentiment_label`"
+                            },
+                            {
+                              "name": "month",
+                              "expression": "`month`"
+                            },
+                            {
+                              "name": "sum(pct)",
+                              "expression": "SUM(`pct`)"
+                            }
+                          ],
+                          "disaggregated": false
+                        }
+                      }
+                    ],
+                    "spec": {
+                      "encodings": {
+                        "color": {
+                          "fieldName": "sentiment_label",
+                          "legend": {
+                            "title": "Sentiment"
+                          },
+                          "scale": {
+                            "type": "categorical"
+                          }
+                        },
+                        "x": {
+                          "axis": {
+                            "labelAngle": 45,
+                            "title": "Month"
+                          },
+                          "fieldName": "month",
+                          "scale": {
+                            "type": "categorical"
+                          }
+                        },
+                        "y": {
+                          "axis": {
+                            "title": "% of Reviews"
+                          },
+                          "fieldName": "sum(pct)",
+                          "scale": {
+                            "type": "quantitative"
+                          }
+                        }
+                      },
+                      "frame": {
+                        "showTitle": true,
+                        "title": "Sentiment % by Month (Line)"
+                      },
+                      "mark": {
+                        "colors": [
+                          "#E53935",
+                          "#9E9E9E",
+                          "#43A047"
+                        ]
+                      },
+                      "version": 3,
+                      "widgetType": "line"
+                    }
+                  },
+                  "position": {
+                    "x": 0,
+                    "y": 12,
+                    "width": 12,
+                    "height": 9
+                  }
+                }
+              ],
+              "pageType": "PAGE_TYPE_CANVAS",
+              "layoutVersion": "GRID_V1"
+            }
+          ],
+          "uiSettings": {
+            "theme": {
+              "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+            },
+            "applyModeEnabled": false
+          }
+        }

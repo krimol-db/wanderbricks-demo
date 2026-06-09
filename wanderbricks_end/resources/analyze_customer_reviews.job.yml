@@ -1,0 +1,29 @@
+resources:
+  jobs:
+    analyze_customer_reviews:
+      name: Analyze Customer Reviews
+      queue:
+        enabled: true
+      tasks:
+        - pipeline_task:
+            pipeline_id: a91c4997-0e1f-49b9-b9a9-b0017c7fcd9b
+          task_key: process_customer_reviews
+        - dashboard_task:
+            dashboard_id: 01f1641c382814c4a694658736fdb386
+            subscription: {}
+            warehouse_id: 2be3f8ffb2251d96
+          depends_on:
+            - task_key: process_customer_reviews
+          task_key: update_review_trend
+      trigger:
+        pause_status: UNPAUSED
+        periodic:
+          interval: 1
+          unit: DAYS
+      email_notifications:
+        no_alert_for_skipped_runs: false
+        on_failure:
+          - tanishq.maheshwari@databricks.com
+      notification_settings:
+        no_alert_for_canceled_runs: false
+        no_alert_for_skipped_runs: false
