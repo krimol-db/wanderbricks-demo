@@ -1,6 +1,6 @@
 # Declarative Automation Bundle configuration, more info here: https://docs.databricks.com/en/dev-tools/bundles/settings.html
 bundle:
-  name: "wanderbricks_start"
+  name: "wanderbricks_demo"
 
 include:
   - resources/*.yml
@@ -20,20 +20,20 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://fevm-deco.cloud.databricks.com
+      host: https://dbc-c69ca1f0-d421.staging.cloud.databricks.com
     variables:
-      catalog: deco_catalog
+      catalog: wanderbricks_demo
       schema: default
 
   # The 'prod' target, used for production deployment.
   prod:
     mode: production
     workspace:
-      host: https://fevm-deco.cloud.databricks.com
+      host: https://dbc-c69ca1f0-d421.staging.cloud.databricks.com
       # Use a stable shared deployment path for production artifacts.
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
     variables:
-      catalog: deco_catalog
+      catalog: wanderbricks_demo
       schema: default
     run_as:
       # Best practice for production is to run as a service principal instead of a personal user.
